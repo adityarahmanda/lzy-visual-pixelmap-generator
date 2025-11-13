@@ -78,6 +78,7 @@ button:focus,button:focus-visible {
 }
 
 .canvas-preview-container {
+    position: relative;
     width: 100%;
     max-width: 90vw;
     display: flex;
