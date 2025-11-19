@@ -13,12 +13,16 @@ interface Grid {
 }
 
 interface CanvasImage {
+  id?: string;
   image: HTMLImageElement;
-  loaded: boolean;
+  loaded?: boolean;
+  fileImage?: File;
 }
 
 let canvasRef: HTMLCanvasElement;
+let backgroundInput: HTMLInputElement;
 let background:CanvasImage;
+let logoInput: HTMLInputElement;
 let logo: CanvasImage;
 let colorBarLeft: CanvasImage;
 let colorBarRight: CanvasImage;
@@ -36,15 +40,28 @@ let labelText:string;
 let labelLeftColor:string;
 let labelRightColor:string;
 let labelSize:number;
+let labelSpaceFromCenter:number;
 let showBackground:boolean;
 let showLogo:boolean;
-let showCenterColorBar:boolean;
-let showLeftRightColorBar:boolean;
 let logoSize:number;
+let showCenterColorBar:boolean;
+let centerColorBarSize:number;
+let showLeftRightColorBar:boolean;
 let gridColor:string;
 let gridThickness:number;
 let fontsLoaded: boolean;
 let grid: Grid;
+
+const backgroundImagePath = "./Background.webp";
+const logoImagePath = "./Logo.webp";
+const colorBarLeftImagePath = "./ColorBarLeft.webp";
+const colorBarRightImagePath = "./ColorBarRight.webp";
+const colorBarCenterImagePath = "./ColorBarCenter.webp";
+
+const defaultImagePathMap = new Map<string, string>([
+  ["background", backgroundImagePath],
+  ["logo", logoImagePath],
+]);
 
 const isLandscape = () => width >= height;
 const getBaseRows = () => isLandscape() ? 15 : 45;
@@ -66,12 +83,14 @@ function resetAll() {
   labelLeftColor = "#ffffff";
   labelRightColor = "#000000";
   labelSize = 1.0;
+  labelSpaceFromCenter = 0.6;
   showBackground = true;
   showLogo = true;
   logoSize = 1.0;
   gridColor = "#ffffff";
   gridThickness = 1.0;
   showCenterColorBar = true;
+  centerColorBarSize = 1.0;
   showLeftRightColorBar = true;
   drawCanvas();
 }
@@ -182,7 +201,7 @@ function drawLogo() {
   let imgWidth, imgHeight;
   if (isLandscape()) {
     imgWidth = (rows - offset) * cellHeight * logoSize;
-    imgHeight = imgWidth * aspect;
+    imgHeight = imgWidth / aspect;
   } else {
     imgHeight = (cols - offset) * cellWidth * logoSize;
     imgWidth = imgHeight * aspect;
@@ -201,33 +220,31 @@ function drawLabelText() {
   if (!ctx) return;
   if (!showLabel) return;
 
-  const { cellWidth, cellHeight, cols, rows, startX, startY } = grid;
+  const { cellWidth, cellHeight, gridWidth, gridHeight, cols, rows, startX, startY } = grid;
 
   if (isLandscape())
   {
-    const colOffset = Math.floor(getColThickness() * 7);
     const rowOffset = Math.floor(getRowThickness() * 8);
     const fontSize = (rows - rowOffset) * cellHeight * labelSize;
     ctx.font = `bold ${fontSize}px Sora`;
     const metrics = ctx.measureText(labelText);
     const textYOffset = metrics.actualBoundingBoxDescent / 2;
     ctx.fillStyle = labelLeftColor;
-    ctx.fillText(labelText, startX + colOffset * cellWidth, height / 2 + textYOffset);
+    ctx.fillText(labelText, startX + (gridWidth / 2) * (1 - labelSpaceFromCenter), height / 2 + textYOffset);
     ctx.fillStyle = labelRightColor;
-    ctx.fillText(labelText, startX + (cols - colOffset) * cellWidth, height / 2+ textYOffset);
+    ctx.fillText(labelText, startX + (gridWidth / 2) + (gridWidth / 2) * labelSpaceFromCenter, height / 2+ textYOffset);
   }
   else
   {
     const colOffset = Math.floor(getColThickness() * 8);
-    const rowOffset = Math.floor(getRowThickness() * 7);
     const fontSize = (cols - colOffset) * cellWidth * labelSize;
     ctx.font = `bold ${fontSize}px Sora`;
     const metrics = ctx.measureText(labelText);
     const textYOffset = metrics.actualBoundingBoxDescent / 2;
     ctx.fillStyle = labelLeftColor;
-    ctx.fillText(labelText, width / 2, startY + rowOffset * cellHeight + textYOffset);
+    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) * (1 - labelSpaceFromCenter) * cellHeight + textYOffset);
     ctx.fillStyle = labelRightColor;
-    ctx.fillText(labelText, width / 2, startY + (rows - rowOffset) * cellHeight + textYOffset);
+    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) + (gridHeight / 2) * labelSpaceFromCenter * cellHeight + textYOffset);
   }
 }
 
@@ -274,17 +291,14 @@ function drawColorBarCenter() {
   if (!showCenterColorBar) return;
   
   const { cellWidth, cellHeight, rows, cols } = grid;
-  if (isLandscape() && rows < getBaseRows()) return
-  if (!isLandscape() && cols < getBaseCols()) return
-  
   const offset = Math.floor((isLandscape() ? getRowThickness() : getColThickness()) * 4);
   const aspect = colorBarCenter.image.naturalWidth / colorBarCenter.image.naturalHeight;
   let imgWidth, imgHeight;
   if (isLandscape()) {
-    imgWidth = (rows - offset) * cellHeight * logoSize;
-    imgHeight = imgWidth * aspect;
+    imgWidth = (rows - offset) * cellHeight * centerColorBarSize;
+    imgHeight = imgWidth / aspect;
   } else {
-    imgHeight = (cols - offset) * cellWidth * logoSize;
+    imgHeight = (cols - offset) * cellWidth * centerColorBarSize;
     imgWidth = imgHeight * aspect;
   }
 
@@ -331,43 +345,40 @@ onMount(async () => {
   ctx = canvasRef.getContext("2d");
 
   background = { 
+    id: "background",
     image: new Image(), 
-    loaded: false 
   }
   background.image = new Image();
-  background.image.src = "./Background.webp";
+  background.image.src = backgroundImagePath;
   background.image.onload = () => background.loaded = true;
 
   logo = { 
+    id: "logo",
     image: new Image(), 
-    loaded: false 
   }
   logo.image = new Image();
-  logo.image.src = "./Logo.webp";
+  logo.image.src = logoImagePath;
   logo.image.onload = () => logo.loaded = true;
 
   colorBarLeft = { 
     image: new Image(), 
-    loaded: false 
   }
   colorBarLeft.image = new Image();
-  colorBarLeft.image.src = "./ColorBarLeft.webp";
+  colorBarLeft.image.src = colorBarLeftImagePath;
   colorBarLeft.image.onload = () => colorBarLeft.loaded = true;
 
   colorBarRight = { 
     image: new Image(), 
-    loaded: false 
   }
   colorBarRight.image = new Image();
-  colorBarRight.image.src = "./ColorBarRight.webp";
+  colorBarRight.image.src = colorBarRightImagePath;
   colorBarRight.image.onload = () => colorBarRight.loaded = true;
 
   colorBarCenter = { 
     image: new Image(), 
-    loaded: false 
   }
   colorBarCenter.image = new Image();
-  colorBarCenter.image.src = "./ColorBarCenter.webp";
+  colorBarCenter.image.src = colorBarCenterImagePath;
   colorBarCenter.image.onload = () => colorBarCenter.loaded = true;
 
   if (document.fonts && document.fonts.ready) {
@@ -398,14 +409,46 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
   labelLeftColor;
   labelRightColor;
   labelSize;
+  labelSpaceFromCenter;
   showBackground;
   showLogo;
   logoSize;
   gridColor;
   gridThickness;
   showCenterColorBar;
+  centerColorBarSize;
   showLeftRightColorBar;
   drawCanvas();
+}
+
+function loadCanvasImageFromFile(canvasImage: CanvasImage, file?: File) {
+  const canvasImageId = canvasImage.id as string;
+
+  // Determine the source
+  let src: string | null = null;
+
+  if (file) {
+    src = URL.createObjectURL(file);
+    canvasImage.fileImage = file;
+  } else if (defaultImagePathMap.has(canvasImageId)) {
+    src = defaultImagePathMap.get(canvasImageId)!;
+    canvasImage.fileImage = undefined;
+  } else {
+    return; // nothing to load
+  }
+
+  // Begin loading
+  canvasImage.loaded = false;
+  const img = new Image();
+  canvasImage.image = img;
+
+  img.onload = () => {
+    canvasImage.loaded = true;
+    if (file) URL.revokeObjectURL(src!);
+    drawCanvas();
+  };
+
+  img.src = src!;
 }
 </script>
 
@@ -435,6 +478,7 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
                     <input id="widthInput" inputmode="numeric" aria-label="Image Width" type="text" bind:value={width}><span>X</span>
                     <input id="heightInput" inputmode="numeric" aria-label="Image Height" type="text" bind:value={height}></div>
                </div>
+              <div class="control-item"><hr/></div>
               <div class="control-item">
                 <label class="toggle-switch-label">
                   <span>Background:</span>
@@ -444,7 +488,29 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
                   </label>
                 </label>
               </div>
-               <div class="control-item">
+              <div class="control-item">
+                <label>Custom Background:</label>
+                <div class="control-item-row">
+                  <div class="file-container">
+                    <div class="file-input">
+                      <input 
+                        bind:this={backgroundInput}
+                        type="file" 
+                        accept="image/*" 
+                        on:change={e => loadCanvasImageFromFile(background, event.target.files[0])}
+                      />
+                    </div>
+                    <div class="file-input-clear">
+                      <button class="action-button" on:click={() =>  {
+                          loadCanvasImageFromFile(background, null); 
+                          backgroundInput.value = "";
+                        }}>✖</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="control-item"><hr/></div>
+              <div class="control-item">
                 <label for="gridRowsSlider">Grid Rows: ({rowsInput})</label>
                 <input id="gridRowsSlider" min="4" max="48" step="1" type="range" bind:value={rowsInput}>
               </div>
@@ -486,6 +552,31 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
                 </label>
               </div>
               <div class="control-item">
+                <label>Custom Logo:</label>
+                <div class="control-item-row">
+                  <div class="file-container">
+                    <div class="file-input">
+                      <input 
+                        bind:this={logoInput}
+                        type="file" 
+                        accept="image/*" 
+                        on:change={e => loadCanvasImageFromFile(logo, event.target.files[0])}
+                      />
+                    </div>
+                    <div class="file-input-clear">
+                      <button class="action-button" on:click={() => {
+                        loadCanvasImageFromFile(logo, null);
+                        logoInput.value = "";
+                      }}>✖</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="control-item">
+                <label for="logoSizeSlider">Logo Size: ({logoSize})</label>
+                <input id="logoSizeSlider" min="0.1" max="3" step="0.1" type="range" bind:value={logoSize}>
+              </div>
+              <div class="control-item">
                 <label class="toggle-switch-label">
                   <span>Logo Color Bar:</span>
                   <label class="switch">
@@ -495,9 +586,10 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
                 </label>
               </div>
               <div class="control-item">
-                <label for="logoSizeSlider">Logo Size: ({logoSize})</label>
-                <input id="logoSizeSlider" min="0.1" max="3" step="0.1" type="range" bind:value={logoSize}>
+                <label for="logoColorBarSlider">Logo Color Bar Size: ({centerColorBarSize})</label>
+                <input id="logoColorBarSlider" min="0.1" max="3" step="0.1" type="range" bind:value={centerColorBarSize}>
               </div>
+              <div class="control-item"><hr/></div>
               <div class="control-item">
                 <label class="toggle-switch-label"><span>Label:</span>
                   <label class="switch"><input id="labelToggle" type="checkbox" bind:checked={showLabel}>
@@ -512,6 +604,10 @@ $: if (fontsLoaded && background?.loaded && logo?.loaded && colorBarCenter?.load
               <div class="control-item">
                 <label for="labelSizeSlider">Label Size: ({labelSize})</label>
                 <input id="labelSizeSlider" min="0.1" max="3" step="0.1" type="range" bind:value={labelSize}>
+              </div>
+              <div class="control-item">
+                <label for="labelSpaceFromCenterSlider">Label Space From Center: ({labelSpaceFromCenter})</label>
+                <input id="labelSpaceFromCenterSlider" min="0" max="1" step="0.1" type="range" bind:value={labelSpaceFromCenter}>
               </div>
               <div class="control-item">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
