@@ -242,9 +242,9 @@ function drawLabelText() {
     const metrics = ctx.measureText(labelText);
     const textYOffset = metrics.actualBoundingBoxDescent / 2;
     ctx.fillStyle = labelLeftColor;
-    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) * (1 - labelSpaceFromCenter) * cellHeight + textYOffset);
+    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) * (1 - labelSpaceFromCenter) + textYOffset);
     ctx.fillStyle = labelRightColor;
-    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) + (gridHeight / 2) * labelSpaceFromCenter * cellHeight + textYOffset);
+    ctx.fillText(labelText, width / 2, startY + (gridHeight / 2) + (gridHeight / 2) * labelSpaceFromCenter + textYOffset);
   }
 }
 
